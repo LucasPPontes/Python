@@ -15,6 +15,9 @@ listPrefixFromUser = []
 
 listCnAndPrefix = []
 
+listCallId = []
+listViaBranch = []
+
 def showResult():
     cap = pyshark.FileCapture("../input/saida.pcap",display_filter="sip")
     for i in cap:
@@ -25,14 +28,18 @@ def showResult():
             statusCode = i.sip.status_code
             responseTime = i.sip.response_time
             requestFrame = i.sip.response_request
+            callId = i.sip.call_id
+            viaBranch = i.sip.via_branch
 
-            print(f"{responseTime}, {requestFrame}, {fromUser}, {toUser}, {statusCode}")
+            print(f"{responseTime}, {requestFrame}, {fromUser}, {toUser}, {statusCode}, {callId}")
 
             listFromUser.append(fromUser)
             listToUser.append(toUser)
             listStatusCode.append(statusCode)
             listResponseTime.append(responseTime)
             listResponseRequest.append(requestFrame)
+            listCallId.append(callId)
+            listViaBranch.append(viaBranch)
 
         except Exception as e:
             print(e)
@@ -50,16 +57,23 @@ def showCn():
         listCnAndPrefix.append(f"{cn[3:5]}{cn[5:9]}")
 
 def createResultFile():
-    df = pd.DataFrame(zip(listResponseTime, listResponseRequest, listFromUser,listToUser,listStatusCode,listCnFromUser,listPrefixFromUser,listCnAndPrefix),columns=["ResponseTime(ms)", "ResponseRequest","Origem","Destino","Status","CN_Origem","Prefixo_Origem","Cn + Prefixo"])
-    df = df.astype(str)
 
+    dfResult = pd.DataFrame(zip(listResponseTime, listResponseRequest, listFromUser,listToUser,listStatusCode,listCallId,listViaBranch,listCnFromUser,listPrefixFromUser,listCnAndPrefix),columns=["ResponseTime(ms)", "ResponseRequest","Origem","Destino","Status","Call Id","Via Branch","CN_Origem","Prefixo_Origem","Cn + Prefixo"])
+
+    dfResult["Cn + Prefixo"]=dfResult["Cn + Prefixo"].astype(int)
+
+    dfPrefix = pd.read_excel("../output/teste.xlsx",sheet_name="Prefixo")
+    dfPrefix.drop(["CN","Prefixo"],axis=1,inplace=True)
+
+    df = pd.merge(dfResult,dfPrefix,on="Cn + Prefixo")
+    df = df.drop_duplicates(subset=["Origem","Destino","Status"])
     print(df)
 
     with pd.ExcelWriter("../output/teste.xlsx", mode="a") as writer:
         df.to_excel(writer,sheet_name="SipResult", index=None)
 
     print("xlsx criado")
-        
+
 def main():
     showResult()
     try:
