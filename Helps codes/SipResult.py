@@ -9,6 +9,7 @@ listFromUser = []
 listToUser = []
 
 listStatusCode = []
+listResultStatus = []
 
 listCnFromUser = []
 listPrefixFromUser = []
@@ -56,9 +57,19 @@ def showCn():
         listPrefixFromUser.append(cn[5:9])
         listCnAndPrefix.append(f"{cn[3:5]}{cn[5:9]}")
 
+def showResponseStatusResult():
+    for status in listStatusCode:
+        if status[0] == "2":
+            listResultStatus.append("OK")
+        elif status[0] == "4":
+            listResultStatus.append("NOK")
+        else:
+            listResultStatus.append("Trying")
+
+
 def createResultFile():
 
-    dfResult = pd.DataFrame(zip(listResponseTime, listResponseRequest, listFromUser,listToUser,listStatusCode,listCallId,listViaBranch,listCnFromUser,listPrefixFromUser,listCnAndPrefix),columns=["ResponseTime(ms)", "ResponseRequest","Origem","Destino","Status","Call Id","Via Branch","CN_Origem","Prefixo_Origem","Cn + Prefixo"])
+    dfResult = pd.DataFrame(zip(listResponseTime, listResponseRequest, listFromUser,listToUser,listStatusCode,listResultStatus,listCallId,listViaBranch,listCnFromUser,listPrefixFromUser,listCnAndPrefix),columns=["ResponseTime(ms)", "ResponseRequest","Origem","Destino","Status","Response","Call Id","Via Branch","CN_Origem","Prefixo_Origem","Cn + Prefixo"])
 
     dfResult["Cn + Prefixo"]=dfResult["Cn + Prefixo"].astype(int)
 
@@ -67,8 +78,9 @@ def createResultFile():
 
     df = pd.merge(dfResult,dfPrefix,on="Cn + Prefixo")
     df = df.drop_duplicates(subset=["Origem","Destino","Status"])
-    print(df)
 
+    print(df)
+    
     with pd.ExcelWriter("../output/teste.xlsx", mode="a") as writer:
         df.to_excel(writer,sheet_name="SipResult", index=None)
 
@@ -82,5 +94,6 @@ def main():
         print(e)
 
     showCn()
+    showResponseStatusResult()
     createResultFile()
 main()
